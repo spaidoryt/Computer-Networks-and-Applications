@@ -47,147 +47,166 @@ except:
 
 # continuously accept connections
 while True:
-  print ('Waiting for connection...')
-  clientSocket = None
+    print('Waiting for connection...')
+    clientSocket = None
 
-  # Accept connection from client and store in the clientSocket
-  try:
-    clientSocket, clientAddress = serverSocket.accept()
-    print ('Received a connection')
-  except:
-    print ('Failed to accept connection')
-    sys.exit()
-
-  # Get HTTP request from client
-  # and store it in the variable: message_bytes
-  try:
-    message_bytes = clientSocket.recv(BUFFER_SIZE)
-  except:
-    print ('Failed to receive message from client')
-    sys.exit()
-
-  message = message_bytes.decode('utf-8')
-  print ('Received request:')
-  print ('< ' + message)
-
-  # Extract the method, URI and version of the HTTP client request 
-  requestParts = message.split()
-  method = requestParts[0]
-  URI = requestParts[1]
-  version = requestParts[2]
-
-  print ('Method:\t\t' + method)
-  print ('URI:\t\t' + URI)
-  print ('Version:\t' + version)
-  print ('')
-
-  # Get the requested resource from URI
-  # Remove http protocol from the URI
-  URI = re.sub('^(/?)http(s?)://', '', URI, count=1)
-
-  # Remove parent directory changes - security
-  URI = URI.replace('/..', '')
-
-  # Split hostname from resource name
-  resourceParts = URI.split('/', 1)
-  hostname = resourceParts[0]
-  resource = '/'
-
-  if len(resourceParts) == 2:
-    # Resource is absolute URI with hostname and resource
-    resource = resource + resourceParts[1]
-
-  print ('Requested Resource:\t' + resource)
-
-  # Check if resource is in cache
-  try:
-    cacheLocation = './' + hostname + resource
-    if cacheLocation.endswith('/'):
-        cacheLocation = cacheLocation + 'default'
-
-    print ('Cache location:\t\t' + cacheLocation)
-
-    fileExists = os.path.isfile(cacheLocation)
-    
-    # Check wether the file is currently in the cache
-    cacheFile = open(cacheLocation, "r")
-    cacheData = cacheFile.readlines()
-
-    print ('Cache hit! Loading from cache file: ' + cacheLocation)
-    # ProxyServer finds a cache hit
-    # Send back response to client 
-    clientSocket.sendall('HTTP/1.0 200 OK\r\n'.encode())
-    clientSocket.sendall('Content-Type: text/html\r\n\r\n'.encode())
-    clientSocket.sendall(''.join(cacheData).encode())
-    cacheFile.close()
-    print ('Sent to the client:')
-    print ('> ' + ''.join(cacheData))
-  except:
-    # cache miss.  Get resource from origin server
-    originServerSocket = None
-    # Create a socket to connect to origin server
+    # Accept connection from client and store in the clientSocket
     try:
-        originServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # ~~~~ INSERT CODE ~~~~
+        clientSocket, addr = serverSocket.accept()
+        # ~~~~ END CODE INSERT ~~~~
+        print('Received a connection')
     except:
-        print('Failed to create origin server socket')
+        print('Failed to accept connection')
         sys.exit()
 
-    print ('Connecting to:\t\t' + hostname + '\n')
+    # Get HTTP request from client
+    # and store it in the variable: message_bytes
+    # ~~~~ INSERT CODE ~~~~
+    message_bytes = clientSocket.recv(BUFFER_SIZE)
+    # ~~~~ END CODE INSERT ~~~~
+    message = message_bytes.decode('utf-8')
+    print('Received request:')
+    print('< ' + message)
+
+    # Extract the method, URI and version of the HTTP client request 
+    requestParts = message.split()
+    method = requestParts[0]
+    URI = requestParts[1]
+    version = requestParts[2]
+
+    print('Method:\t\t' + method)
+    print('URI:\t\t' + URI)
+    print('Version:\t' + version)
+    print('')
+
+    # Get the requested resource from URI
+    # Remove http protocol from the URI
+    URI = re.sub('^(/?)http(s?)://', '', URI, count=1)
+
+    # Remove parent directory changes - security
+    URI = URI.replace('/..', '')
+
+    # Split hostname from resource name
+    resourceParts = URI.split('/', 1)
+    hostname = resourceParts[0]
+    resource = '/'
+
+    if len(resourceParts) == 2:
+        # Resource is absolute URI with hostname and resource
+        resource = resource + resourceParts[1]
+
+    print('Requested Resource:\t' + resource)
+
+    # Check if resource is in cache
     try:
-      # Get the IP address for a hostname
-      address = socket.gethostbyname(hostname)
-      # Connect to the origin server
-      originServerSocket.connect((address, 80))
-      print ('Connected to origin Server')
+        cacheLocation = './' + hostname + resource
+        if cacheLocation.endswith('/'):
+            cacheLocation = cacheLocation + 'default'
 
-      originServerRequest = method + ' ' + resource + ' ' + version
-      originServerRequestHeader = 'Host: ' + hostname
+        print('Cache location:\t\t' + cacheLocation)
 
-      # Create origin server request line and headers to send
-      request = originServerRequest + '\r\n' + originServerRequestHeader + '\r\n\r\n'
+        fileExists = os.path.isfile(cacheLocation)
+        
+        # Check wether the file is currently in the cache
+        cacheFile = open(cacheLocation, "r")
+        cacheData = cacheFile.readlines()
 
-      # Request the web resource from origin server
-      print ('Forwarding request to origin server:')
-      for line in request.split('\r\n'):
-        print ('> ' + line)
+        print('Cache hit! Loading from cache file: ' + cacheLocation)
+        # ProxyServer finds a cache hit
+        # Send back response to client 
+        # ~~~~ INSERT CODE ~~~~
+        for i in range(0, len(cacheData)):
+            clientSocket.send(cacheData[i].encode())
+        # ~~~~ END CODE INSERT ~~~~
+        cacheFile.close()
+        print('Sent to the client:')
+        print('> ' + str(cacheData))
+    except:
+        # cache miss.  Get resource from origin server
+        originServerSocket = None
+        # Create a socket to connect to origin server
+        # and store in originServerSocket
+        # ~~~~ INSERT CODE ~~~~
+        originServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # ~~~~ END CODE INSERT ~~~~
 
-      try:
-        originServerSocket.sendall(request.encode())
-      except socket.error:
-        print ('Forward request to origin failed')
-        sys.exit()
+        print('Connecting to:\t\t' + hostname + '\n')
+        try:
+            # Get the IP address for a hostname
+            address = socket.gethostbyname(hostname)
+            # Connect to the origin server
+            # ~~~~ INSERT CODE ~~~~
+            originServerSocket.connect((address, 80))
+            # ~~~~ END CODE INSERT ~~~~
+            print('Connected to origin Server')
 
-      print('Request sent to origin server\n')
+            originServerRequest = ''
+            originServerRequestHeader = ''
+            # Create origin server request line and headers to send
+            # and store in originServerRequestHeader and originServerRequest
+            # originServerRequest is the first line in the request and
+            # originServerRequestHeader is the second line in the request
+            # ~~~~ INSERT CODE ~~~~
+            originServerRequest = method + " " + resource + " " + version
+            originServerRequestHeader = "Host: " + hostname
+            # ~~~~ END CODE INSERT ~~~~
 
-      # Get the response from the origin server
-      response_bytes = originServerSocket.recv(BUFFER_SIZE)
+            # Construct the request to send to the origin server
+            request = originServerRequest + '\r\n' + originServerRequestHeader + '\r\n\r\n'
 
-      # Send the response to the client
-      clientSocket.sendall(response_bytes)
-      print('Response sent to client')
+            # Request the web resource from origin server
+            print('Forwarding request to origin server:')
+            for line in request.split('\r\n'):
+                print('> ' + line)
 
-      # Create a new file in the cache for the requested file.
-      cacheDir, file = os.path.split(cacheLocation)
-      print ('cached directory ' + cacheDir)
-      if not os.path.exists(cacheDir):
-        os.makedirs(cacheDir)
-      cacheFile = open(cacheLocation, 'wb')
+            try:
+                originServerSocket.sendall(request.encode())
+            except socket.error:
+                print('Forward request to origin failed')
+                sys.exit()
 
-      # Save origin server response in the cache file
-      cacheFile.write(response_bytes)
-      cacheFile.close()
-      print ('cache file closed')
+            print('Request sent to origin server\n')
 
-      # finished communicating with origin server - shutdown socket writes
-      print ('origin response received. Closing sockets')
-      originServerSocket.close()
-       
-      clientSocket.shutdown(socket.SHUT_WR)
-      print ('client socket shutdown for writing')
-    except OSError as err:
-      print ('origin server request failed. ' + err.strerror)
+            # Get the response from the origin server
+            # ~~~~ INSERT CODE ~~~~
+            origin_response = b''
+            while True:
+                data = originServerSocket.recv(BUFFER_SIZE)
+                if not data:
+                    break
+                origin_response += data
+            # ~~~~ END CODE INSERT ~~~~
 
-  try:
-    clientSocket.close()
-  except:
-    print ('Failed to close client socket')
+            # Send the response to the client
+            # ~~~~ INSERT CODE ~~~~
+            clientSocket.sendall(origin_response)
+            # ~~~~ END CODE INSERT ~~~~
+
+            # Create a new file in the cache for the requested file.
+            cacheDir, file = os.path.split(cacheLocation)
+            print('cached directory ' + cacheDir)
+            if not os.path.exists(cacheDir):
+                os.makedirs(cacheDir)
+            cacheFile = open(cacheLocation, 'wb')
+
+            # Save origin server response in the cache file
+            # ~~~~ INSERT CODE ~~~~
+            cacheFile.write(origin_response)
+            # ~~~~ END CODE INSERT ~~~~
+            cacheFile.close()
+            print('cache file closed')
+
+            # finished communicating with origin server - shutdown socket writes
+            print('origin response received. Closing sockets')
+            originServerSocket.close()
+            
+            clientSocket.shutdown(socket.SHUT_WR)
+            print('client socket shutdown for writing')
+        except OSError as err:
+            print('origin server request failed. ' + err.strerror)
+
+    try:
+        clientSocket.close()
+    except:
+        print('Failed to close client socket')
