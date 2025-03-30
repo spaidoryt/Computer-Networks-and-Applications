@@ -17,32 +17,35 @@ proxyHost = args.hostname
 proxyPort = int(args.port)
 
 # Create a server socket, bind it to a port and start listening
-try:
-  # Create a server socket
-  # ~~~~ INSERT CODE ~~~~
-  # ~~~~ END CODE INSERT ~~~~
-  print ('Created socket')
-except:
-  print ('Failed to create socket')
-  sys.exit()
 
 try:
-  # Bind the the server socket to a host and port
-  # ~~~~ INSERT CODE ~~~~
-  # ~~~~ END CODE INSERT ~~~~
-  print ('Port is bound')
+    # ~~~~ INSERT CODE ~~~~
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # ~~~~ END CODE INSERT ~~~~
+    print('Created socket')
 except:
-  print('Port is already in use')
-  sys.exit()
+    print('Failed to create socket')
+    sys.exit()
+
 
 try:
-  # Listen on the server socket
-  # ~~~~ INSERT CODE ~~~~
-  # ~~~~ END CODE INSERT ~~~~
-  print ('Listening to socket')
+    # ~~~~ INSERT CODE ~~~~
+    serverSocket.bind((proxyHost, proxyPort))
+    # ~~~~ END CODE INSERT ~~~~
+    print('Port is bound')
 except:
-  print ('Failed to listen')
-  sys.exit()
+    print('Port is already in use')
+    sys.exit()
+
+try:
+    # ~~~~ INSERT CODE ~~~~
+    serverSocket.listen(5)  # Allow up to 5 connections in the queue
+    # ~~~~ END CODE INSERT ~~~~
+    print('Listening to socket')
+except:
+    print('Failed to listen')
+    sys.exit()
+
 
 # continuously accept connections
 while True:
