@@ -19,33 +19,31 @@ proxyPort = int(args.port)
 # Create a server socket, bind it to a port and start listening
 
 try:
-    # ~~~~ INSERT CODE ~~~~
+    # Create a socket using IPv4 and TCP (Stream) connection
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # ~~~~ END CODE INSERT ~~~~
     print('Created socket')
 except:
+    # Handle the error if socket creation fails
     print('Failed to create socket')
     sys.exit()
 
-
 try:
-    # ~~~~ INSERT CODE ~~~~
+    # Bind the socket to the specified host and port
     serverSocket.bind((proxyHost, proxyPort))
-    # ~~~~ END CODE INSERT ~~~~
     print('Port is bound')
 except:
+    # Handle the error if the port is already in use
     print('Port is already in use')
     sys.exit()
 
 try:
-    # ~~~~ INSERT CODE ~~~~
-    serverSocket.listen(5)  # Allow up to 5 connections in the queue
-    # ~~~~ END CODE INSERT ~~~~
+    # Start listening for incoming connections with a backlog of up to 5 connections
+    serverSocket.listen(5)
     print('Listening to socket')
 except:
+    # Handle the error if the socket fails to listen
     print('Failed to listen')
     sys.exit()
-
 
 # continuously accept connections
 while True:
@@ -54,8 +52,7 @@ while True:
 
   # Accept connection from client and store in the clientSocket
   try:
-    # ~~~~ INSERT CODE ~~~~
-    # ~~~~ END CODE INSERT ~~~~
+    clientSocket, clientAddress = serverSocket.accept()
     print ('Received a connection')
   except:
     print ('Failed to accept connection')
@@ -63,8 +60,12 @@ while True:
 
   # Get HTTP request from client
   # and store it in the variable: message_bytes
-  # ~~~~ INSERT CODE ~~~~
-  # ~~~~ END CODE INSERT ~~~~
+  try:
+    message_bytes = clientSocket.recv(BUFFER_SIZE)
+  except:
+    print ('Failed to receive message from client')
+    sys.exit()
+
   message = message_bytes.decode('utf-8')
   print ('Received request:')
   print ('< ' + message)
@@ -115,38 +116,34 @@ while True:
     print ('Cache hit! Loading from cache file: ' + cacheLocation)
     # ProxyServer finds a cache hit
     # Send back response to client 
-    # ~~~~ INSERT CODE ~~~~
-    # ~~~~ END CODE INSERT ~~~~
+    clientSocket.sendall('HTTP/1.0 200 OK\r\n'.encode())
+    clientSocket.sendall('Content-Type: text/html\r\n\r\n'.encode())
+    clientSocket.sendall(''.join(cacheData).encode())
     cacheFile.close()
     print ('Sent to the client:')
-    print ('> ' + cacheData)
+    print ('> ' + ''.join(cacheData))
   except:
     # cache miss.  Get resource from origin server
     originServerSocket = None
     # Create a socket to connect to origin server
-    # and store in originServerSocket
-    # ~~~~ INSERT CODE ~~~~
-    # ~~~~ END CODE INSERT ~~~~
+    try:
+        originServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    except:
+        print('Failed to create origin server socket')
+        sys.exit()
 
     print ('Connecting to:\t\t' + hostname + '\n')
     try:
       # Get the IP address for a hostname
       address = socket.gethostbyname(hostname)
       # Connect to the origin server
-      # ~~~~ INSERT CODE ~~~~
-      # ~~~~ END CODE INSERT ~~~~
+      originServerSocket.connect((address, 80))
       print ('Connected to origin Server')
 
-      originServerRequest = ''
-      originServerRequestHeader = ''
-      # Create origin server request line and headers to send
-      # and store in originServerRequestHeader and originServerRequest
-      # originServerRequest is the first line in the request and
-      # originServerRequestHeader is the second line in the request
-      # ~~~~ INSERT CODE ~~~~
-      # ~~~~ END CODE INSERT ~~~~
+      originServerRequest = method + ' ' + resource + ' ' + version
+      originServerRequestHeader = 'Host: ' + hostname
 
-      # Construct the request to send to the origin server
+      # Create origin server request line and headers to send
       request = originServerRequest + '\r\n' + originServerRequestHeader + '\r\n\r\n'
 
       # Request the web resource from origin server
@@ -163,12 +160,11 @@ while True:
       print('Request sent to origin server\n')
 
       # Get the response from the origin server
-      # ~~~~ INSERT CODE ~~~~
-      # ~~~~ END CODE INSERT ~~~~
+      response_bytes = originServerSocket.recv(BUFFER_SIZE)
 
       # Send the response to the client
-      # ~~~~ INSERT CODE ~~~~
-      # ~~~~ END CODE INSERT ~~~~
+      clientSocket.sendall(response_bytes)
+      print('Response sent to client')
 
       # Create a new file in the cache for the requested file.
       cacheDir, file = os.path.split(cacheLocation)
@@ -178,8 +174,7 @@ while True:
       cacheFile = open(cacheLocation, 'wb')
 
       # Save origin server response in the cache file
-      # ~~~~ INSERT CODE ~~~~
-      # ~~~~ END CODE INSERT ~~~~
+      cacheFile.write(response_bytes)
       cacheFile.close()
       print ('cache file closed')
 
