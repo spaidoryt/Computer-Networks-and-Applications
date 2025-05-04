@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "emulator.h"
-#include "gbn.h"
-
+#include "sr.h"
 /* ******************************************************************
    Go Back N protocol.  Adapted from J.F.Kurose
    ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR: VERSION 1.2
