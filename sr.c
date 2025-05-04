@@ -90,3 +90,89 @@ void A_output(struct msg message)
   }
 }
 
+/* Function to handle incoming ACK packets at A */
+void A_input(struct pkt packet)
+{
+  int ackcount = 0;
+  int i;
+
+  /* If received ACK is not corrupted */
+  if (!IsCorrupted(packet)) {
+    if (TRACE > 0)
+      printf("----A: uncorrupted ACK %d received\n", packet.acknum);
+    total_ACKs_received++;
+
+    /* Check if ACK is new or duplicate */
+    if (windowfirst <= windowlast && windowcount > 0) {
+      /* Window is sliding, send the next packet */
+      windowfirst = (windowfirst + 1) % WINDOWSIZE;
+      windowcount--;
+      if (windowcount > 0)
+        starttimer(A, RTT);  // Restart the timer
+    }
+  } else {
+    if (TRACE > 0)
+      printf("----A: corrupted ACK %d received\n", packet.acknum);
+  }
+}
+
+/* Function to handle timeouts at A */
+void A_timerinterrupt()
+{
+  int i;
+
+  if (TRACE > 0)
+    printf("----A: Timeout occurred, resending packet...\n");
+
+  /* Resend all the packets in the window */
+  for (i = windowfirst; i != windowlast; i = (i + 1) % WINDOWSIZE) {
+    tolayer3(A, buffer[i]);
+  }
+
+  /* Restart the timer */
+  starttimer(A, RTT);
+}
+
+/* Function to handle incoming packets at A */
+void A_init()
+{
+  windowfirst = 0;
+  windowlast = -1;
+  windowcount = 0;
+  A_nextseqnum = 0;
+}
+
+/********* Receiver (B) variables and functions ************/
+
+static int B_lastack;  /* the last ACK number received */
+
+void B_output(struct msg message)
+{
+  /* Receiver does not send anything */
+}
+
+void B_input(struct pkt packet)
+{
+  /* If packet is uncorrupted and its sequence number is the next expected */
+  if (!IsCorrupted(packet) && packet.seqnum == B_lastack + 1) {
+    if (TRACE > 0)
+      printf("----B: uncorrupted packet %d received\n", packet.seqnum);
+
+    /* Send ACK for the received packet */
+    B_lastack = packet.seqnum;
+    struct pkt ackpkt;
+    ackpkt.seqnum = NOTINUSE;
+    ackpkt.acknum = B_lastack;
+    ackpkt.checksum = ComputeChecksum(ackpkt);
+    tolayer3(B, ackpkt);
+  } else {
+    if (TRACE > 0)
+      printf("----B: corrupted or out-of-order packet %d received\n", packet.seqnum);
+  }
+}
+
+void B_init()
+{
+  B_lastack = -1;
+}
+
