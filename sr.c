@@ -55,22 +55,34 @@ void A_output(struct msg message) {
         windowcount++;
 
         /* Send packet */
+        if (TRACE > 0) {
+            printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
+        }
         tolayer3(A, sendpkt);
 
         /* Start timer if first packet in window */
         if (windowcount == 1) {
+            if (TRACE > 0) {
+                printf("          START TIMER: starting timer at current time\n");
+            }
             starttimer(A, RTT);
         }
 
         /* Update sequence number */
         A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
     } else {
+        if (TRACE > 0) {
+            printf("----A: New message arrives, send window is full\n");
+        }
         window_full++;
     }
 }
 
 void A_input(struct pkt packet) {
     if (!IsCorrupted(packet)) {
+        if (TRACE > 0) {
+            printf("----A: uncorrupted ACK %d received\n", packet.acknum);
+        }
         total_ACKs_received++;
         
         /* Slide window forward to the ACK number */
@@ -88,14 +100,24 @@ void A_input(struct pkt packet) {
         
         /* Update timer */
         if (windowcount == 0) {
+            if (TRACE > 0) {
+                printf("          STOP TIMER: stopping timer at current time\n");
+            }
             stoptimer(A);
         } else {
             starttimer(A, RTT);
+        }
+    } else {
+        if (TRACE > 0) {
+            printf("----A: corrupted ACK received\n");
         }
     }
 }
 
 void A_timerinterrupt() {
+    if (TRACE > 0) {
+        printf("----A: Timeout occurred, resending window...\n");
+    }
     packets_resent += windowcount;
     for (int i = 0; i < windowcount; i++) {
         int index = (windowfirst + i) % WINDOWSIZE;
@@ -120,17 +142,28 @@ void B_input(struct pkt packet) {
 
     if (!IsCorrupted(packet)) {
         if (packet.seqnum == B_expectedseqnum) {
+            if (TRACE > 0) {
+                printf("----B: uncorrupted packet %d received\n", packet.seqnum);
+            }
             correct_packets_received++;
             tolayer5(B, packet.payload);
             messages_delivered++;
             ackpkt.acknum = B_expectedseqnum;
             B_expectedseqnum = (B_expectedseqnum + 1) % SEQSPACE;
         } else {
+            if (TRACE > 0) {
+                printf("----B: out-of-order packet %d received (expected %d)\n", 
+                      packet.seqnum, B_expectedseqnum);
+            }
             /* Send ACK for last correctly received packet */
             ackpkt.acknum = (B_expectedseqnum - 1 + SEQSPACE) % SEQSPACE;
         }
         ackpkt.checksum = ComputeChecksum(ackpkt);
         tolayer3(B, ackpkt);
+    } else {
+        if (TRACE > 0) {
+            printf("----B: corrupted packet received\n");
+        }
     }
 }
 
