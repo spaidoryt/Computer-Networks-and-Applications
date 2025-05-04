@@ -100,17 +100,25 @@ void A_input(struct pkt packet)
     total_ACKs_received++;
 
     /* Check if ACK is for a packet in our window */
-    if (windowcount > 0 && packet.acknum >= buffer[windowfirst].seqnum) {
-      /* Slide the window forward */
-      int packets_acked = (packet.acknum - buffer[windowfirst].seqnum + 1) % SEQSPACE;
-      windowfirst = (windowfirst + packets_acked) % WINDOWSIZE;
-      windowcount -= packets_acked;
+    if (windowcount > 0) {
+      /* Slide the window forward to the ACK number */
+      while (windowcount > 0 && 
+             buffer[windowfirst].seqnum != packet.acknum) {
+        windowfirst = (windowfirst + 1) % WINDOWSIZE;
+        windowcount--;
+      }
       
-      /* Stop timer if no more packets are waiting */
+      /* If we found the packet, acknowledge it */
+      if (windowcount > 0 && buffer[windowfirst].seqnum == packet.acknum) {
+        windowfirst = (windowfirst + 1) % WINDOWSIZE;
+        windowcount--;
+      }
+      
+      /* Update timer */
       if (windowcount == 0)
         stoptimer(A);
       else
-        starttimer(A, RTT);  /* Restart timer for remaining packets */
+        starttimer(A, RTT);
     }
   } else {
     if (TRACE > 0)
@@ -121,11 +129,12 @@ void A_input(struct pkt packet)
 /* Function to handle timeouts at A */
 void A_timerinterrupt()
 {
+  int i;
+  
   if (TRACE > 0)
     printf("----A: Timeout occurred, resending window...\n");
 
   /* Resend all packets in the window */
-  int i;
   for (i = 0; i < windowcount; i++) {
     int index = (windowfirst + i) % WINDOWSIZE;
     tolayer3(A, buffer[index]);
