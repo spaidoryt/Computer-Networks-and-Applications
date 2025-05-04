@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "emulator.h"
-#include "sr.h"
+#include "gbn.h"
 
 /* ******************************************************************
    Go Back N protocol.  Adapted from J.F.Kurose
@@ -86,16 +86,13 @@ void A_output(struct msg message)
   } else {
     if (TRACE > 0)
       printf("----A: New message arrives, send window is full\n");
-    window_full++;  // Optional handling for full window
+    window_full++;  /* Optional handling for full window */
   }
 }
 
 /* Function to handle incoming ACK packets at A */
 void A_input(struct pkt packet)
 {
-  int ackcount = 0;
-  int i;
-
   /* If received ACK is not corrupted */
   if (!IsCorrupted(packet)) {
     if (TRACE > 0)
@@ -108,7 +105,7 @@ void A_input(struct pkt packet)
       windowfirst = (windowfirst + 1) % WINDOWSIZE;
       windowcount--;
       if (windowcount > 0)
-        starttimer(A, RTT);  // Restart the timer
+        starttimer(A, RTT);  /* Restart the timer */
     }
   } else {
     if (TRACE > 0)
@@ -153,6 +150,8 @@ void B_output(struct msg message)
 
 void B_input(struct pkt packet)
 {
+  struct pkt ackpkt;
+
   /* If packet is uncorrupted and its sequence number is the next expected */
   if (!IsCorrupted(packet) && packet.seqnum == B_lastack + 1) {
     if (TRACE > 0)
@@ -160,7 +159,6 @@ void B_input(struct pkt packet)
 
     /* Send ACK for the received packet */
     B_lastack = packet.seqnum;
-    struct pkt ackpkt;
     ackpkt.seqnum = NOTINUSE;
     ackpkt.acknum = B_lastack;
     ackpkt.checksum = ComputeChecksum(ackpkt);
@@ -171,8 +169,12 @@ void B_input(struct pkt packet)
   }
 }
 
+void B_timerinterrupt()
+{
+  /* Receiver doesn't need timer functionality */
+}
+
 void B_init()
 {
   B_lastack = -1;
 }
-
